@@ -39,7 +39,7 @@ def fetch_object(service, obj_type, obj_name, create=False, create_args={}, **fe
 
     # Methods for each object type
     list_methods = {
-        "environment": "get_environments",
+        "environment": "list_environments",
         "configuration": "list_configurations",
         "collection": "list_collections",
         "workspace": "list_workspaces"
