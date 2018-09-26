@@ -1,6 +1,7 @@
 """Utility functions to support the notebook."""
 
 import json
+import watson_developer_cloud
 
 def fetch_credentials(service_name, creds_file="service-credentials.json"):
     """Fetch credentials for cloud services from file.
@@ -39,7 +40,7 @@ def fetch_object(service, obj_type, obj_name, create=False, create_args={}, **fe
 
     # Methods for each object type
     list_methods = {
-        "environment": "get_environments",
+        "environment": "list_environments",
         "configuration": "list_configurations",
         "collection": "list_collections",
         "workspace": "list_workspaces"
@@ -60,7 +61,9 @@ def fetch_object(service, obj_type, obj_name, create=False, create_args={}, **fe
     # Look up by name
     obj = None
     obj_id = None
-    obj_list = service.__getattribute__(list_methods[obj_type])(**fetch_args)
+    obj_list = getattr(service, list_methods[obj_type])(**fetch_args)
+    obj_list = obj_list.get_result()
+
     for o in obj_list[obj_type + "s"]:
         if o["name"] == obj_name:
             obj = o
@@ -70,14 +73,18 @@ def fetch_object(service, obj_type, obj_name, create=False, create_args={}, **fe
     
     if obj_id: # fetch object
         fetch_args[obj_type + "_id"] = obj_id
-        obj = service.__getattribute__(get_methods[obj_type])(**fetch_args)
+        obj = getattr(service, get_methods[obj_type])(**fetch_args)
+        obj.get_result()
     elif create:  # create new, if desired
-        if obj_type == "configuration":  # handle configuration weirdness
+        if obj_type == "configuration":
             create_args["config_data"]["name"] = obj_name
         else:
             create_args["name"] = obj_name
-        obj = service.__getattribute__(create_methods[obj_type])(**create_args)
+            print(create_args)
+        obj = getattr(service, create_methods[obj_type])(**create_args)
+        obj = obj.get_result()
         obj_id = obj[obj_type + "_id"]
+        obj = json.dumps(obj, indent=2)
         print("Created {}: {} ({})".format(obj_type, obj_name, obj_id))
     
     return obj, obj_id
